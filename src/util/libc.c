@@ -226,7 +226,7 @@ void _mi_atomic_once_release(mi_atomic_once_t* once) {
   }
 }
 
-#if MI_USE_PTHREADS
+#if MI_USE_PTHREADS && !MI_TLS_MODEL_MUSL
 mi_decl_noinline bool _mi_pthread_key_create(pthread_key_t* pkey, void (*destruct)(void*), void* init) {
   int err = pthread_key_create(pkey,destruct);
   if mi_unlikely(err!=0) {

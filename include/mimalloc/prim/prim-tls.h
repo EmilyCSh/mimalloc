@@ -51,7 +51,7 @@ static inline bool mi_theap_matches_thread(mi_theap_t* theap) {
 
 
 // Default TLS model
-#if !defined(MI_TLS_MODEL_LOCAL) && !defined(MI_TLS_MODEL_PTHREADS) && !defined(MI_TLS_MODEL_FIXED) && !defined(MI_TLS_MODEL_WIN32)
+#if !defined(MI_TLS_MODEL_LOCAL) && !defined(MI_TLS_MODEL_PTHREADS) && !defined(MI_TLS_MODEL_FIXED) && !defined(MI_TLS_MODEL_WIN32) && !defined(MI_TLS_MODEL_MUSL)
 #if defined(_WIN32)
 #define MI_TLS_MODEL_WIN32        1
 #elif defined(__APPLE__) || defined(__OpenBSD__) || defined(__ANDROID__)  // and FreeBSD?
@@ -275,6 +275,17 @@ static inline mi_theap_t* _mi_theap_default(void) {
 
 static inline mi_theap_t* _mi_theap_cached(void) {
   return __mi_theap_cached;
+}
+
+#elif MI_TLS_MODEL_MUSL
+#define MI_THEAP_INITASNULL  1
+
+static inline mi_theap_t* _mi_theap_default(void) {
+  return (mi_theap_t*)__pthread_self()->malloc_heap;
+}
+
+static inline mi_theap_t* _mi_theap_cached(void) {
+  return (mi_theap_t*)__pthread_self()->malloc_heap_cached;
 }
 
 #elif MI_TLS_MODEL_PTHREADS

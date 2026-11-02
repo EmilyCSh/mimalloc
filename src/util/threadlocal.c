@@ -44,9 +44,16 @@ static mi_thread_locals_t mi_thread_locals_empty = mi_init_struct_zero;
   - mi_slot_fast: a single dedicated thread local for slightly faster access. (used for the main heap's theap)
 ----------------------------------------------------------- */
 
-#if MI_TLS_MODEL_PTHREADS || defined(__APPLE__)   // macOS has fast pthreads
+#if MI_TLS_MODEL_MUSL
+#define mi_define_thread_local(tp,name,initval,field) \
+  static inline tp   name##_peek(void)    { return (tp)__pthread_self()->field; } \
+  static inline tp   name##_get(void)     { tp result = name##_peek(); return (result!=NULL ? result : initval); } \
+  static inline bool name##_set(tp val)   { __pthread_self()->field = val; return true; } \
+  static inline void name##_delete(void)  { }
+
+#elif MI_TLS_MODEL_PTHREADS || defined(__APPLE__)   // macOS has fast pthreads
 // Use pthreads
-#define mi_define_thread_local(tp,name,initval) \
+#define mi_define_thread_local(tp,name,initval,field) \
   static pthread_key_t __##name##_key = MI_PTHREAD_KEY_INVALID; \
   static inline tp   name##_peek(void)    { return (tp)mi_pthread_key_get(__##name##_key); } \
   static inline tp   name##_get(void)     { tp result = name##_peek(); return (result!=NULL ? result : initval); } \
@@ -55,7 +62,7 @@ static mi_thread_locals_t mi_thread_locals_empty = mi_init_struct_zero;
 
 #else
 // Direct thread locals
-#define mi_define_thread_local(tp,name,initval) \
+#define mi_define_thread_local(tp,name,initval,field) \
   static mi_decl_thread tp __##name = initval; \
   static inline tp   name##_peek(void)    { return __##name; } \
   static inline tp   name##_get(void)     { tp result = __##name; return (result!=NULL ? result : initval); } \
@@ -63,8 +70,8 @@ static mi_thread_locals_t mi_thread_locals_empty = mi_init_struct_zero;
   static inline void name##_delete(void)  {  }
 #endif
 
-mi_define_thread_local(mi_thread_locals_t*, mi_thread_locals, &mi_thread_locals_empty)
-mi_define_thread_local(void*, mi_slot_fast, NULL)
+mi_define_thread_local(mi_thread_locals_t*, mi_thread_locals, &mi_thread_locals_empty, malloc_tls)
+mi_define_thread_local(void*, mi_slot_fast, NULL, malloc_tls_fast)
 
 
 /* -----------------------------------------------------------

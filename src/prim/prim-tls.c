@@ -29,7 +29,9 @@ mi_decl_hidden mi_decl_thread mi_theap_t* __mi_theap_default = (mi_theap_t*)&_mi
 mi_decl_hidden mi_decl_thread mi_theap_t* __mi_theap_cached = (mi_theap_t*)&_mi_theap_empty;
 #endif
 
+#if !MI_TLS_MODEL_MUSL
 mi_decl_hidden mi_decl_thread void* __mi_thread_id_helper = NULL;
+#endif
 
 mi_thread_id_t _mi_thread_id(void) mi_attr_noexcept {
   const mi_thread_id_t tid = _mi_prim_thread_id();
@@ -215,6 +217,8 @@ void _mi_theap_cached_set(mi_theap_t* theap) {
   _mi_tls_slots_init();
   #if MI_TLS_MODEL_LOCAL
     __mi_theap_cached = theap;
+  #elif MI_TLS_MODEL_MUSL
+    __pthread_self()->malloc_heap_cached = theap;
   #elif MI_TLS_MODEL_FIXED
     mi_prim_tls_slot_set(MI_TLS_MODEL_FIXED_CACHED, theap);
   #elif MI_TLS_MODEL_WIN32
@@ -235,6 +239,8 @@ void _mi_theap_default_set(mi_theap_t* theap)  {
   _mi_tls_slots_init();
   #if MI_TLS_MODEL_LOCAL
     __mi_theap_default = theap;
+  #elif MI_TLS_MODEL_MUSL
+    __pthread_self()->malloc_heap = theap;
   #elif MI_TLS_MODEL_FIXED
     mi_prim_tls_slot_set(MI_TLS_MODEL_FIXED_DEFAULT, theap);
   #elif MI_TLS_MODEL_WIN32
